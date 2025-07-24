@@ -12,12 +12,14 @@ This MCP server exposes Shipwright Build functionality through standardized tool
 - **list_builds** - List builds in a namespace with filtering options
 - **get_build** - Get detailed information about a specific build
 - **create_build** - Create a new Build resource from source
+- **delete_build** - Delete a Build resource
 
 ### BuildRun Management  
 - **list_buildruns** - List buildruns in a namespace with filtering options
 - **get_buildrun** - Get detailed information about a specific buildrun
 - **create_buildrun** - Create a new BuildRun (from existing Build or inline spec)
 - **restart_buildrun** - Restart a buildrun by creating a new one
+- **delete_buildrun** - Delete a BuildRun resource
 
 ### Strategy Management
 - **list_buildstrategies** - List namespace-scoped build strategies with filtering options
@@ -25,15 +27,16 @@ This MCP server exposes Shipwright Build functionality through standardized tool
 
 ## Prerequisites
 
-- Go 1.22 or later
+- Go 1.23 or later
 - Access to a Kubernetes cluster with Shipwright Build installed
 - Proper Kubernetes configuration (kubeconfig or in-cluster config)
 
 ## Installation
 
-1. Clone this repository and navigate to the server directory:
+1. Clone this repository:
 ```bash
-cd server
+git clone <repository-url>
+cd shipwright-mcp-server
 ```
 
 2. Install dependencies:
@@ -43,7 +46,7 @@ go mod tidy
 
 3. Build the server:
 ```bash
-go build -o shipwright-build-mcp-server .
+go build -o shipwright-build-mcp-server main.go
 ```
 
 ## Usage
@@ -99,6 +102,11 @@ For Claude Desktop or other MCP clients, add this configuration:
 * `parameters`: Build parameters as key-value pairs (object, optional)
 * `timeout`: Build timeout duration, e.g. "30m", "1h" (string, optional)
 
+#### `delete_build` – Delete a Build Resource
+
+* `name`: Name of the build to delete (string, required)
+* `namespace`: Namespace where the build is located (string, optional, default: "default")
+
 ### BuildRun Tools
 
 #### `list_buildruns` – List BuildRuns in a Namespace with Filtering Options
@@ -141,6 +149,11 @@ This tool supports two modes:
 #### `restart_buildrun` – Restart a BuildRun by Creating a New One
 
 * `name`: Name or reference of the buildrun to restart (string, required)
+* `namespace`: Namespace where the buildrun is located (string, optional, default: "default")
+
+#### `delete_buildrun` – Delete a BuildRun Resource
+
+* `name`: Name of the buildrun to delete (string, required)
 * `namespace`: Namespace where the buildrun is located (string, optional, default: "default")
 
 ### Strategy Tools
@@ -201,6 +214,24 @@ This tool supports two modes:
   "parameters": {
     "dockerfile": "Dockerfile.prod"
   }
+}
+```
+
+### Deleting a Build
+
+```json
+{
+  "name": "my-app-build",
+  "namespace": "default"
+}
+```
+
+### Deleting a BuildRun
+
+```json
+{
+  "name": "my-app-build-run-1",
+  "namespace": "default"
 }
 ```
 

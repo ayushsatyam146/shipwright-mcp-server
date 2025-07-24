@@ -113,7 +113,7 @@ var k8sClient client.Client
 func main() {
 	// Set log output to stderr so it doesn't interfere with MCP protocol on stdout
 	log.SetOutput(os.Stderr)
-	log.Printf("🚀 Starting Shipwright Build MCP Server v1.1.0")
+	log.Printf("🚀 Starting Shipwright Build MCP Server v1.2.0")
 
 	// Initialize Kubernetes client
 	log.Printf("🔧 Initializing Kubernetes client...")
@@ -142,7 +142,7 @@ func main() {
 	// Create a server with Shipwright Build tools
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "shipwright-build-mcp-server",
-		Version: "v1.1.0",
+		Version: "v1.2.0",
 	}, nil)
 
 	log.Printf("🔨 Registering MCP tools...")
