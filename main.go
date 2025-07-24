@@ -83,6 +83,18 @@ type RestartBuildRunParams struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
+// DeleteBuildParams parameters for deleting a build
+type DeleteBuildParams struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// DeleteBuildRunParams parameters for deleting a buildrun
+type DeleteBuildRunParams struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
 // ListBuildStrategiesParams parameters for listing build strategies
 type ListBuildStrategiesParams struct {
 	Namespace     string `json:"namespace"`
@@ -151,6 +163,11 @@ func main() {
 		Description: "Create a new Build resource",
 	}, createBuild)
 
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "delete_build",
+		Description: "Delete a Build resource",
+	}, deleteBuild)
+
 	// Add tools for managing BuildRun resources
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_buildruns",
@@ -172,6 +189,11 @@ func main() {
 		Description: "Restart a BuildRun by creating a new one",
 	}, restartBuildRun)
 
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "delete_buildrun",
+		Description: "Delete a BuildRun resource",
+	}, deleteBuildRun)
+
 	// Add tools for managing BuildStrategy resources
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_buildstrategies",
@@ -186,7 +208,7 @@ func main() {
 
 	// Run the server over stdin/stdout
 	log.Printf("🎯 MCP Server ready and listening on stdin/stdout...")
-	log.Printf("🛠️  Available tools: list_builds, get_build, create_build, list_buildruns, get_buildrun, create_buildrun, restart_buildrun, list_buildstrategies, list_clusterbuildstrategies")
+	log.Printf("🛠️  Available tools: list_builds, get_build, create_build, delete_build, list_buildruns, get_buildrun, create_buildrun, restart_buildrun, delete_buildrun, list_buildstrategies, list_clusterbuildstrategies")
 	log.Printf("📡 Waiting for MCP client connections...")
 
 	if err := server.Run(context.Background(), mcp.NewStdioTransport()); err != nil {
@@ -869,6 +891,92 @@ func listBuildStrategies(ctx context.Context, cc *mcp.ServerSession, params *mcp
 
 	return &mcp.CallToolResultFor[any]{
 		Content: []mcp.Content{&mcp.TextContent{Text: result.String()}},
+	}, nil
+}
+
+func deleteBuild(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteBuildParams]) (*mcp.CallToolResultFor[any], error) {
+	namespace := params.Arguments.Namespace
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	// Validate required parameters
+	if params.Arguments.Name == "" {
+		return &mcp.CallToolResultFor[any]{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: "Build name is required"}},
+		}, nil
+	}
+
+	build := &buildv1beta1.Build{}
+	if err := k8sClient.Get(ctx, client.ObjectKey{
+		Name:      params.Arguments.Name,
+		Namespace: namespace,
+	}, build); err != nil {
+		if errors.IsNotFound(err) {
+			return &mcp.CallToolResultFor[any]{
+				IsError: true,
+				Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("Build '%s' not found in namespace '%s'", params.Arguments.Name, namespace)}},
+			}, nil
+		}
+		return &mcp.CallToolResultFor[any]{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("Failed to get build: %v", err)}},
+		}, nil
+	}
+
+	if err := k8sClient.Delete(ctx, build); err != nil {
+		return &mcp.CallToolResultFor[any]{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("Failed to delete build: %v", err)}},
+		}, nil
+	}
+
+	return &mcp.CallToolResultFor[any]{
+		Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("Successfully deleted Build '%s' from namespace '%s'", params.Arguments.Name, namespace)}},
+	}, nil
+}
+
+func deleteBuildRun(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[DeleteBuildRunParams]) (*mcp.CallToolResultFor[any], error) {
+	namespace := params.Arguments.Namespace
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	// Validate required parameters
+	if params.Arguments.Name == "" {
+		return &mcp.CallToolResultFor[any]{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: "BuildRun name is required"}},
+		}, nil
+	}
+
+	buildRun := &buildv1beta1.BuildRun{}
+	if err := k8sClient.Get(ctx, client.ObjectKey{
+		Name:      params.Arguments.Name,
+		Namespace: namespace,
+	}, buildRun); err != nil {
+		if errors.IsNotFound(err) {
+			return &mcp.CallToolResultFor[any]{
+				IsError: true,
+				Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("BuildRun '%s' not found in namespace '%s'", params.Arguments.Name, namespace)}},
+			}, nil
+		}
+		return &mcp.CallToolResultFor[any]{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("Failed to get buildrun: %v", err)}},
+		}, nil
+	}
+
+	if err := k8sClient.Delete(ctx, buildRun); err != nil {
+		return &mcp.CallToolResultFor[any]{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("Failed to delete buildrun: %v", err)}},
+		}, nil
+	}
+
+	return &mcp.CallToolResultFor[any]{
+		Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("Successfully deleted BuildRun '%s' from namespace '%s'", params.Arguments.Name, namespace)}},
 	}, nil
 }
 

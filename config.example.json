@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "shipwright-build": {
-      "command": "/Users/asatyam/Documents/work/shp-build/mcp-server/shipwright-mcp-server",
+      "command": "/Users/asatyam/Documents/work/shipwright-mcp-server/shipwright-build-mcp-server",
       "args": [],
       "env": {
         "KUBECONFIG": "/Users/asatyam/.kube/config"
