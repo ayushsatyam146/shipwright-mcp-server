@@ -33,18 +33,7 @@ This MCP server exposes Shipwright Build functionality through standardized tool
 
 ## Installation
 
-1. Clone this repository:
-```bash
-git clone <repository-url>
-cd shipwright-mcp-server
-```
-
-2. Install dependencies:
-```bash
-go mod tidy
-```
-
-3. Build the server:
+1. Build the server:
 ```bash
 go build -o shipwright-build-mcp-server main.go
 ```
@@ -61,17 +50,8 @@ The server runs as a standard MCP server over stdin/stdout. You can use it with 
 
 ### Example Client Configuration
 
-For Claude Desktop or other MCP clients, add this configuration:
+Refer config.example.json in the root of this project
 
-```json
-{
-  "mcpServers": {
-    "shipwright-build": {
-      "command": "/path/to/shipwright-build-mcp-server"
-    }
-  }
-}
-```
 
 ## Available Tools
 
@@ -247,8 +227,8 @@ The server automatically detects and uses Kubernetes configuration:
 You can also run the server in a container:
 
 ```bash
-docker build -t shipwright-build-mcp-server .
-docker run shipwright-build-mcp-server
+podman build -t shipwright-build-mcp-server .
+podman run shipwright-build-mcp-server
 ```
 
 ## Development
@@ -287,16 +267,3 @@ The server provides comprehensive error handling with descriptive messages:
 - **Network Errors** - Connection issues, timeout errors
 
 All errors are returned as MCP error responses with helpful context.
-
-## Contributing
-
-Contributions are welcome! Please ensure that:
-
-1. All new tools include proper parameter validation
-2. Error handling follows the existing patterns
-3. Documentation is updated for new features
-4. Code follows Go best practices
-
-## License
-
-This project follows the same license as the main Shipwright Build project. 

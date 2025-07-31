@@ -18,20 +18,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ListBuildsParams parameters for listing builds
 type ListBuildsParams struct {
 	Namespace     string `json:"namespace"`
 	Prefix        string `json:"prefix,omitempty"`
 	LabelSelector string `json:"label-selector,omitempty"`
 }
 
-// GetBuildParams parameters for getting a build
 type GetBuildParams struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// CreateBuildParams parameters for creating a build
 type CreateBuildParams struct {
 	Name         string            `json:"name"`
 	Namespace    string            `json:"namespace,omitempty"`
@@ -46,25 +43,22 @@ type CreateBuildParams struct {
 	Timeout      string            `json:"timeout,omitempty"`
 }
 
-// ListBuildRunsParams parameters for listing buildruns
 type ListBuildRunsParams struct {
 	Namespace     string `json:"namespace"`
 	Prefix        string `json:"prefix,omitempty"`
 	LabelSelector string `json:"label-selector,omitempty"`
 }
 
-// GetBuildRunParams parameters for getting a buildrun
 type GetBuildRunParams struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// CreateBuildRunParams parameters for creating a buildrun
 type CreateBuildRunParams struct {
 	Name      string `json:"name,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
 	BuildName string `json:"build-name,omitempty"`
-	// Inline build spec fields
+
 	SourceType     string            `json:"source-type,omitempty"`
 	SourceURL      string            `json:"source-url,omitempty"`
 	ContextDir     string            `json:"context-dir,omitempty"`
@@ -77,32 +71,27 @@ type CreateBuildRunParams struct {
 	ServiceAccount string            `json:"service-account,omitempty"`
 }
 
-// RestartBuildRunParams parameters for restarting a buildrun
 type RestartBuildRunParams struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// DeleteBuildParams parameters for deleting a build
 type DeleteBuildParams struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// DeleteBuildRunParams parameters for deleting a buildrun
 type DeleteBuildRunParams struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// ListBuildStrategiesParams parameters for listing build strategies
 type ListBuildStrategiesParams struct {
 	Namespace     string `json:"namespace"`
 	Prefix        string `json:"prefix,omitempty"`
 	LabelSelector string `json:"label-selector,omitempty"`
 }
 
-// ListClusterBuildStrategiesParams parameters for listing cluster build strategies
 type ListClusterBuildStrategiesParams struct {
 	Prefix        string `json:"prefix,omitempty"`
 	LabelSelector string `json:"label-selector,omitempty"`
@@ -111,43 +100,37 @@ type ListClusterBuildStrategiesParams struct {
 var k8sClient client.Client
 
 func main() {
-	// Set log output to stderr so it doesn't interfere with MCP protocol on stdout
 	log.SetOutput(os.Stderr)
-	log.Printf("🚀 Starting Shipwright Build MCP Server v1.2.0")
+	log.Printf("Starting Shipwright Build MCP Server v1.2.0")
 
-	// Initialize Kubernetes client
-	log.Printf("🔧 Initializing Kubernetes client...")
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Printf("⚠️  Not running in cluster, trying kubeconfig...")
-		// Fallback to kubeconfig
+		log.Printf("Not running in cluster, trying kubeconfig...")
 		config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
 		if err != nil {
-			log.Fatalf("❌ Failed to create Kubernetes config: %v", err)
+			log.Fatalf("Failed to create Kubernetes config: %v", err)
 		}
 	}
 
 	scheme := runtime.NewScheme()
 	if err := buildv1beta1.AddToScheme(scheme); err != nil {
-		log.Fatalf("❌ Failed to add build scheme: %v", err)
+		log.Fatalf("Failed to add build scheme: %v", err)
 	}
 
 	k8sClient, err = client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		log.Fatalf("❌ Failed to create Kubernetes client: %v", err)
+		log.Fatalf("Failed to create Kubernetes client: %v", err)
 	}
 
-	log.Printf("✅ Kubernetes client initialized successfully")
+	log.Printf("Kubernetes client initialized")
 
-	// Create a server with Shipwright Build tools
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "shipwright-build-mcp-server",
 		Version: "v1.2.0",
 	}, nil)
 
-	log.Printf("🔨 Registering MCP tools...")
+	log.Printf("Registering MCP tools...")
 
-	// Add tools for managing Build resources
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_builds",
 		Description: "List Builds in a namespace with filtering options",
@@ -206,17 +189,13 @@ func main() {
 		Description: "List ClusterBuildStrategies with filtering options",
 	}, listClusterBuildStrategies)
 
-	// Run the server over stdin/stdout
-	log.Printf("🎯 MCP Server ready and listening on stdin/stdout...")
-	log.Printf("🛠️  Available tools: list_builds, get_build, create_build, delete_build, list_buildruns, get_buildrun, create_buildrun, restart_buildrun, delete_buildrun, list_buildstrategies, list_clusterbuildstrategies")
-	log.Printf("📡 Waiting for MCP client connections...")
+	log.Printf("MCP Server listening on stdin/stdout")
+	log.Printf("Available tools: list_builds, get_build, create_build, delete_build, list_buildruns, get_buildrun, create_buildrun, restart_buildrun, delete_buildrun, list_buildstrategies, list_clusterbuildstrategies")
 
 	if err := server.Run(context.Background(), mcp.NewStdioTransport()); err != nil {
 		log.Fatal(err)
 	}
 }
-
-// Tool implementations
 
 func listBuilds(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToolParamsFor[ListBuildsParams]) (*mcp.CallToolResultFor[any], error) {
 	buildList := &buildv1beta1.BuildList{}
@@ -348,7 +327,6 @@ func createBuild(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToo
 		namespace = "default"
 	}
 
-	// Validate required parameters
 	if params.Arguments.Name == "" {
 		return &mcp.CallToolResultFor[any]{
 			IsError: true,
@@ -374,7 +352,6 @@ func createBuild(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToo
 		}, nil
 	}
 
-	// Create Build object
 	build := &buildv1beta1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      params.Arguments.Name,
@@ -390,7 +367,6 @@ func createBuild(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToo
 		},
 	}
 
-	// Set strategy kind
 	strategyKind := params.Arguments.StrategyKind
 	if strategyKind == "" {
 		strategyKind = "ClusterBuildStrategy"
@@ -398,7 +374,6 @@ func createBuild(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToo
 	kind := buildv1beta1.BuildStrategyKind(strategyKind)
 	build.Spec.Strategy.Kind = &kind
 
-	// Set source
 	sourceType := buildv1beta1.BuildSourceType(params.Arguments.SourceType)
 	build.Spec.Source = &buildv1beta1.Source{
 		Type: sourceType,
@@ -427,7 +402,6 @@ func createBuild(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToo
 		}, nil
 	}
 
-	// Set parameters
 	if len(params.Arguments.Parameters) > 0 {
 		for name, value := range params.Arguments.Parameters {
 			param := buildv1beta1.ParamValue{
@@ -440,7 +414,6 @@ func createBuild(ctx context.Context, cc *mcp.ServerSession, params *mcp.CallToo
 		}
 	}
 
-	// Set timeout
 	if params.Arguments.Timeout != "" {
 		duration, err := time.ParseDuration(params.Arguments.Timeout)
 		if err != nil {
@@ -644,7 +617,6 @@ func createBuildRun(ctx context.Context, cc *mcp.ServerSession, params *mcp.Call
 		namespace = "default"
 	}
 
-	// Validate that we have either a BuildName or inline build spec
 	if params.Arguments.BuildName == "" && params.Arguments.Strategy == "" {
 		return &mcp.CallToolResultFor[any]{
 			IsError: true,
@@ -667,12 +639,11 @@ func createBuildRun(ctx context.Context, cc *mcp.ServerSession, params *mcp.Call
 		buildRun.GenerateName = "buildrun-"
 	}
 
-	// Set service account if provided
+	// Set service account
 	if params.Arguments.ServiceAccount != "" {
 		buildRun.Spec.ServiceAccount = &params.Arguments.ServiceAccount
 	}
 
-	// Set timeout if provided
 	if params.Arguments.Timeout != "" {
 		duration, err := time.ParseDuration(params.Arguments.Timeout)
 		if err != nil {
@@ -684,7 +655,6 @@ func createBuildRun(ctx context.Context, cc *mcp.ServerSession, params *mcp.Call
 		buildRun.Spec.Timeout = &metav1.Duration{Duration: duration}
 	}
 
-	// Set parameters if provided
 	if len(params.Arguments.Parameters) > 0 {
 		for name, value := range params.Arguments.Parameters {
 			param := buildv1beta1.ParamValue{
@@ -698,12 +668,12 @@ func createBuildRun(ctx context.Context, cc *mcp.ServerSession, params *mcp.Call
 	}
 
 	if params.Arguments.BuildName != "" {
-		// Reference existing Build
+
 		buildRun.Spec.Build = buildv1beta1.ReferencedBuild{
 			Name: &params.Arguments.BuildName,
 		}
 	} else {
-		// Create inline build spec
+
 		if params.Arguments.SourceURL == "" || params.Arguments.OutputImage == "" {
 			return &mcp.CallToolResultFor[any]{
 				IsError: true,
@@ -720,7 +690,6 @@ func createBuildRun(ctx context.Context, cc *mcp.ServerSession, params *mcp.Call
 			},
 		}
 
-		// Set strategy kind
 		strategyKind := params.Arguments.StrategyKind
 		if strategyKind == "" {
 			strategyKind = "ClusterBuildStrategy"
@@ -728,7 +697,6 @@ func createBuildRun(ctx context.Context, cc *mcp.ServerSession, params *mcp.Call
 		kind := buildv1beta1.BuildStrategyKind(strategyKind)
 		buildSpec.Strategy.Kind = &kind
 
-		// Set source
 		sourceType := buildv1beta1.BuildSourceType(params.Arguments.SourceType)
 		if sourceType == "" {
 			sourceType = buildv1beta1.GitType
